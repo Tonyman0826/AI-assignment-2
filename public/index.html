@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖像數據集清理儀表板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .stat-label { color: #666; }
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .image-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .image-card img { width: 100%; height: 150px; object-fit: cover; }
+        .image-info { padding: 10px; }
+        .tab-container { margin: 20px 0; }
+        .tabs { display: flex; background: white; border-radius: 8px 8px 0 0; overflow: hidden; }
+        .tab { padding: 15px 20px; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab.active { border-bottom-color: #007acc; background: #f8f9fa; }
+        .tab-content { display: none; background: white; padding: 20px; border-radius: 0 0 8px 8px; }
+        .tab-content.active { display: block; }
+        .success { color: #28a745; }
+        .warning { color: #ffc107; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 圖像數據集清理儀表板</h1>
+            <p>實時監控圖片清理進度和結果</p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <!-- 統計數據會動態填充 -->
+        </div>
+
+        <div class="tab-container">
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('cleaned')">✅ 清理後圖片</div>
+                <div class="tab" onclick="showTab('removed')">🗑️ 刪除的圖片</div>
+                <div class="tab" onclick="showTab('all')">📁 所有圖片</div>
+            </div>
+            
+            <div class="tab-content active" id="cleaned">
+                <h3>清理後的運動圖片</h3>
+                <div class="image-grid" id="cleanedImages">
+                    <!-- 清理後的圖片 -->
+                </div>
+            </div>
+            
+            <div class="tab-content" id="removed">
+                <h3>刪除的圖片</h3>
+                <div class="image-grid" id="removedImages">
+                    <!-- 刪除的圖片 -->
+                </div>
+            </div>
+            
+            <div class="tab-content" id="all">
+                <h3>所有圖片</h3>
+                <div class="image-grid" id="allImages">
+                    <!-- 所有圖片 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        
+        // 更新統計數據
+        socket.on('stats', (stats) => {
+            updateStats(stats);
+        });
+        
+        // 更新圖片顯示
+        socket.on('images', (images) => {
+            updateImages(images, 'allImages');
+        });
+        
+        function updateStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">總圖片數</div>
+                    <div class="stat-number">${stats.total}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">清理後圖片</div>
+                    <div class="stat-number success">${stats.cleaned}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">重複圖片</div>
+                    <div class="stat-number warning">${stats.duplicates}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">非運動圖片</div>
+                    <div class="stat-number error">${stats.nonSports}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">錯誤文件</div>
+                    <div class="stat-number error">${stats.errors}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">唯一網域</div>
+                    <div class="stat-number">${stats.uniqueDomains}</div>
+                </div>
+            `;
+        }
+        
+        function updateImages(images, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = images.map(image => `
+                <div class="image-card">
+                    <img src="${image.file_path}" alt="${image.category}" 
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
+                    <div class="image-info">
+                        <div><strong>分類:</strong> ${image.category}</div>
+                        <div><strong>運動:</strong> ${image.sport_type || '未知'}</div>
+                        <div><strong>來源:</strong> ${image.domain}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showTab(tabName) {
+            // 隱藏所有標籤內容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 顯示選中的標籤
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // 加載對應的圖片數據
+            fetch(`/api/images?type=${tabName}&limit=20`)
+                .then(response => response.json())
+                .then(images => updateImages(images, `${tabName}Images`));
+        }
+        
+        // 初始加載
+        fetch('/api/stats')
+            .then(response => response.json())
+            .then(updateStats);
+            
+        fetch('/api/images?type=all&limit=20')
+            .then(response => response.json())
+            .then(images => updateImages(images, 'allImages'));
+    </script>
+</body>
+</html>
