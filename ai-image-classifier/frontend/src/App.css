@@ -1,200 +1,172 @@
-.app {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+  line-height: 1.6;
 }
 
-.model-status {
-  margin: 20px 0;
-}
-
-.status {
-  padding: 10px 15px;
-  border-radius: 8px;
-  font-weight: bold;
-}
-
-.status.ready {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.status.loading {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
-
-.status.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-.upload-section {
+.app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px 20px;
   text-align: center;
+  min-height: 100vh;
+}
+
+/* 標題樣式 */
+.app h1 {
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 2.2em;
+  font-weight: 700;
+}
+
+.app p {
+  color: #7f8c8d;
+  margin-bottom: 30px;
+  font-size: 1.1em;
+}
+
+/* 上傳區域 */
+.upload-section {
   margin: 30px 0;
-  padding: 20px;
-  border: 2px dashed #ddd;
-  border-radius: 10px;
 }
 
 .upload-button {
-  padding: 12px 30px;
-  background-color: #007bff;
+  padding: 14px 35px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
 
 .upload-button:hover:not(:disabled) {
-  background-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4);
 }
 
 .upload-button:disabled {
-  background-color: #6c757d;
+  background: #6c757d;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-.upload-hint {
-  margin-top: 10px;
-  color: #6c757d;
-  font-size: 14px;
-}
-
+/* 圖片預覽 */
 .preview-section {
-  text-align: center;
-  margin: 20px 0;
+  margin: 25px 0;
 }
 
 .preview-image {
-  max-width: 300px;
-  max-height: 300px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.result-section {
-  margin: 30px 0;
-}
-
-.predictions-container {
-  background: #f8f9fa;
+  max-width: 100%;
+  max-height: 400px;
   border-radius: 10px;
-  padding: 20px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  border: 3px solid #e9ecef;
 }
 
-.prediction-item {
-  margin: 15px 0;
-  padding: 15px;
-  background: white;
-  border-radius: 8px;
-  border-left: 4px solid #007bff;
-}
-
-.prediction-item.sports-related {
-  border-left-color: #28a745;
-  background: #f8fff9;
-}
-
-.prediction-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.category-name {
-  font-weight: bold;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sports-badge {
-  background: #28a745;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-}
-
-.confidence {
-  color: #007bff;
-  font-weight: bold;
-}
-
-.confidence-bar {
-  height: 8px;
-  background: #e9ecef;
-  border-radius: 4px;
-  margin: 8px 0;
+/* 結果顯示 */
+.simple-result {
+  margin: 30px 0;
+  border-radius: 15px;
+  animation: fadeInUp 0.6s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
-.bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #007bff, #0056b3);
-  border-radius: 4px;
-  transition: width 0.5s ease;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.original-name {
-  font-size: 12px;
-  color: #6c757d;
-  font-style: italic;
+.result-yes {
+  background: linear-gradient(135deg, #d4edda, #c3e6cb);
+  border: 3px solid #28a745;
+  color: #155724;
 }
 
-.info-section {
-  margin-top: 40px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 10px;
+.result-no {
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  border: 3px solid #dc3545;
+  color: #721c24;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin: 20px 0;
-}
-
-.info-item {
+.result-yes, .result-no {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  justify-content: center;
+  gap: 20px;
+  padding: 30px 25px;
+  min-height: 120px;
 }
 
-.info-icon {
-  font-size: 24px;
+.result-icon {
+  font-size: 3.5em;
+  flex-shrink: 0;
+  animation: bounce 1s ease;
 }
 
-.info-text {
-  font-size: 14px;
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
 }
 
-.supported-sports {
-  margin-top: 20px;
+.result-text h2 {
+  margin: 0;
+  font-size: 1.8em;
+  font-weight: 700;
 }
 
-.sports-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.sport-tag {
-  background: #007bff;
-  color: white;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 14px;
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .app {
+    padding: 30px 15px;
+  }
+  
+  .app h1 {
+    font-size: 1.8em;
+  }
+  
+  .upload-button {
+    padding: 12px 30px;
+    font-size: 15px;
+  }
+  
+  .result-yes, .result-no {
+    flex-direction: column;
+    gap: 15px;
+    padding: 25px 20px;
+  }
+  
+  .result-text h2 {
+    font-size: 1.5em;
+  }
+  
+  .preview-image {
+    max-height: 300px;
+  }
 }
