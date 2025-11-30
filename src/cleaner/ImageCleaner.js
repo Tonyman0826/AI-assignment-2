@@ -1,26 +1,35 @@
 const fs = require('fs-extra');
-const crypto = require('crypto'); // 使用內置 crypto
+const crypto = require('crypto');
 const path = require('path');
 const SimpleScanner = require('../utils/SimpleScanner');
-const SimpleClassifier = require('../classifier/SimpleClassifier');
 
 class ImageCleaner {
   constructor() {
-    this.classifier = new SimpleClassifier();
+    this.classifier = null;
     this.db = null;
     this.stats = {
       total: 0,
       cleaned: 0,
       duplicates: 0,
       nonSports: 0,
-      errors: 0
+      errors: 0,
+      classificationMethods: {}
     };
   }
   
-  async initialize(db) {
+  async initialize(db, labelManager, modelTrainer) {
     this.db = db;
-    await this.classifier.loadModel();
-    console.log('✅ 清理器初始化完成');
+    
+    // 動態導入 SmartClassifier
+    const SmartClassifier = require('../classifier/SmartClassifier');
+    this.classifier = new SmartClassifier(labelManager, modelTrainer);
+    await this.classifier.initialize();
+    
+    console.log('✅ 清理器初始化完成（智能分類模式）');
+    
+    // 顯示分類器狀態
+    const status = this.classifier.getStatus();
+    console.log(`🎯 分類器狀態: ${status.method}, 學習進度: ${status.learningProgress}`);
   }
   
   async cleanDataset() {
@@ -67,37 +76,6 @@ class ImageCleaner {
     await this.generateReport();
   }
   
-  async createTestImages() {
-    console.log('🎯 創建示例圖像數據...');
-    
-    const testImages = [
-      {
-        url: 'https://example.com/basketball.jpg',
-        domain: 'example.com',
-        file_path: './data/raw/basketball.jpg',
-        file_hash: '',
-        file_size: 102400,
-        width: 800,
-        height: 600,
-        category: 'unknown',
-        sport_type: 'unknown',
-        is_cleaned: false
-      }
-    ];
-    
-    for (const imageData of testImages) {
-      this.db.insertImage(imageData);
-    }
-    
-    this.db.insertCrawlSession({
-      pages_crawled: 5,
-      unique_domains: 3,
-      total_images: testImages.length
-    });
-    
-    console.log(`✅ 創建了 ${testImages.length} 個測試圖像記錄`);
-  }
-  
   async processImage(image, current, total) {
     try {
       console.log(`🔍 處理圖像 ${current}/${total}: ${path.basename(image.file_path)}`);
@@ -130,9 +108,14 @@ class ImageCleaner {
         return;
       }
       
-      // 3. 使用分類器檢查是否為運動相關圖像
+      // 3. 使用智能分類器檢查是否為運動相關圖像
       const classification = await this.classifier.classifyImage(image.file_path);
-      console.log(`🎯 分類結果: ${path.basename(image.file_path)} - 運動: ${classification.isSports}, 類型: ${classification.sportType}, 置信度: ${classification.confidence}`);
+      
+      // 記錄分類方法
+      this.stats.classificationMethods[classification.method] = 
+        (this.stats.classificationMethods[classification.method] || 0) + 1;
+      
+      console.log(`🎯 分類結果: ${path.basename(image.file_path)} - 運動: ${classification.isSports}, 類型: ${classification.sportType}, 方法: ${classification.method}, 置信度: ${classification.confidence}`);
       
       if (!classification.isSports) {
         console.log(`🚫 非運動圖像: ${path.basename(image.file_path)}`);
@@ -144,7 +127,7 @@ class ImageCleaner {
       // 4. 保存清理後的圖像
       await this.saveCleanedImage(image, hash, classification);
       this.stats.cleaned++;
-      console.log(`✅ 保留圖像: ${path.basename(image.file_path)} - 運動類型: ${classification.sportType}`);
+      console.log(`✅ 保留圖像: ${path.basename(image.file_path)} - 運動類型: ${classification.sportType} (${classification.method})`);
       
     } catch (error) {
       console.log(`❌ 處理圖像時出錯: ${error.message}`);
@@ -206,24 +189,68 @@ class ImageCleaner {
       file_hash: hash,
       category: 'sports',
       sport_type: classification.sportType,
+      classification_method: classification.method,
+      confidence: classification.confidence,
       file_path: newPath
     });
   }
   
   async generateReport() {
-    console.log('\n📊 === 清理報告 ===');
+    console.log('\n📊 === 智能清理報告 ===');
     console.log(`原始圖像數量: ${this.stats.total}`);
     console.log(`清理後數量: ${this.stats.cleaned}`);
     console.log(`刪除重複圖像: ${this.stats.duplicates}`);
     console.log(`刪除非運動圖像: ${this.stats.nonSports}`);
     console.log(`處理錯誤: ${this.stats.errors}`);
     
+    console.log('\n🎯 分類方法統計:');
+    Object.entries(this.stats.classificationMethods).forEach(([method, count]) => {
+      console.log(`  ${method}: ${count} 張`);
+    });
+    
+    // 顯示分類器學習狀態
+    const status = this.classifier.getStatus();
+    console.log(`\n🧠 AI 學習狀態: ${status.learningProgress} (${status.labeledDataCount} 張標記)`);
+    
     this.db.insertCleanupStats({
       original_count: this.stats.total,
       cleaned_count: this.stats.cleaned,
       removed_count: this.stats.duplicates + this.stats.nonSports + this.stats.errors,
-      duplicate_count: this.stats.duplicates
+      duplicate_count: this.stats.duplicates,
+      classification_methods: this.stats.classificationMethods,
+      learning_status: status.learningProgress
     });
+  }
+  
+  async createTestImages() {
+    console.log('🎯 創建示例圖像數據...');
+    
+    const testImages = [
+      {
+        url: 'https://example.com/basketball.jpg',
+        domain: 'example.com',
+        file_path: './data/raw/basketball.jpg',
+        file_hash: '',
+        file_size: 102400,
+        width: 800,
+        height: 600,
+        category: 'unknown',
+        sport_type: 'unknown',
+        is_cleaned: false
+      }
+    ];
+    
+    for (const imageData of testImages) {
+      this.db.insertImage(imageData);
+    }
+    
+    this.db.insertCrawlSession({
+      pages_crawled: 5,
+      unique_domains: 3,
+      total_images: testImages.length
+    });
+    
+    console.log(`✅ 創建了 ${testImages.length} 個測試圖像記錄`);
   }
 }
 
